@@ -1305,6 +1305,10 @@ body{padding-bottom:65px!important;background:var(--bg)!important}
   <div class="page-header">
     <button class="back-btn" onclick="navigate('home')"><i class="fas fa-arrow-left"></i></button>
     <h2>Preorders</h2>
+    <button onclick="openPreorderCartModal()" style="margin-left:auto;position:relative;background:none;border:none;font-size:19px;color:var(--gray-700);cursor:pointer;padding:6px">
+      <i class="fas fa-shopping-basket"></i>
+      <span id="preorder-cart-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:var(--orange);color:#fff;font-size:10px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px">0</span>
+    </button>
   </div>
   <div style="padding:14px">
     <div style="background:linear-gradient(120deg,#D6127E,#e0609d);border-radius:14px;padding:16px;color:#fff;margin-bottom:16px">
@@ -1355,6 +1359,17 @@ body{padding-bottom:65px!important;background:var(--bg)!important}
       <button class="modal-close" onclick="closeModal('modal-preorder-detail')"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body" id="preorder-detail-body"></div>
+  </div>
+</div>
+
+<!-- PREORDER CART (multi-item checkout) MODAL -->
+<div class="modal-overlay" id="modal-preorder-cart">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">Preorder Cart</span>
+      <button class="modal-close" onclick="closeModal('modal-preorder-cart')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="preorder-cart-body"></div>
   </div>
 </div>
 
@@ -1456,10 +1471,15 @@ body{padding-bottom:65px!important;background:var(--bg)!important}
         <input type="radio" name="payment" value="bank"> <span style="font-size:14px;font-weight:700">Bank Transfer</span>
         <i class="fas fa-university" style="margin-left:auto;color:var(--orange)"></i>
       </div>
+      <!-- PAY ON DELIVERY -->
+      <div class="payment-option" id="pay-cod" onclick="selectPayment('cod')">
+        <input type="radio" name="payment" value="cod"> <span style="font-size:14px;font-weight:700">Pay on Delivery</span>
+        <i class="fas fa-hand-holding-usd" style="margin-left:auto;color:var(--green)"></i>
+      </div>
       <div class="bank-info hidden" id="bank-info">
-        <p><strong>Bank:</strong> Fidelity</p>
-        <p><strong>Account Name:</strong> Fic baby villa</p>
-        <p><strong>Account Number:</strong> <strong style="font-size:18px;color:var(--orange)">5601428601</strong></p>
+        <p><strong>Bank:</strong> Opay</p>
+        <p><strong>Account Name:</strong> Fic Import</p>
+        <p><strong>Account Number:</strong> <strong style="font-size:18px;color:var(--orange)">9061440811</strong></p>
         <p><strong>Phone:</strong> +2349061440811</p>
         <p style="margin-top:8px;color:var(--red);font-size:12px"><i class="fas fa-exclamation-triangle"></i> Please transfer exact amount and include your order ID as reference.</p>
       </div>
@@ -2494,7 +2514,7 @@ body{padding-bottom:65px!important;background:var(--bg)!important}
     </div>
     <div class="faq-item" onclick="toggleFaq(this)">
       <div class="faq-q">What payment methods do you accept? <i class="fas fa-chevron-down"></i></div>
-      <div class="faq-a" id="faq-bank-details">We accept Bank Transfer. Please use your Order ID as the transfer reference.</div>
+      <div class="faq-a" id="faq-bank-details">We accept Bank Transfer and Pay on Delivery. Please use your Order ID as the transfer reference.</div>
     </div>
     <div class="faq-item" onclick="toggleFaq(this)">
       <div class="faq-q">How do I track my order? <i class="fas fa-chevron-down"></i></div>
@@ -3042,9 +3062,9 @@ body{padding-bottom:65px!important;background:var(--bg)!important}
       <div id="fund-bank-fields">
         <div id="fund-bank-transfer-box" style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:10px;font-size:13px">
           <div style="font-weight:800;margin-bottom:6px;color:var(--orange)">Transfer To:</div>
-          <div>Bank: <strong>Fidelity</strong></div>
-          <div>Name: <strong>Fic baby villa</strong></div>
-          <div>Account: <strong style="font-size:16px;color:var(--orange)">5601428601</strong></div>
+          <div>Bank: <strong>Opay</strong></div>
+          <div>Name: <strong>Fic Import</strong></div>
+          <div>Account: <strong style="font-size:16px;color:var(--orange)">9061440811</strong></div>
           <div style="margin-top:6px;font-size:12px;color:var(--gray-400)">Use your email as transfer reference.</div>
         </div>
         <div>
@@ -3234,9 +3254,9 @@ let _sitewideSale = { active:false, percent:0, startAt:null, endAt:null, label:'
 let _sitewideSaleUnsub = null;
 let _sitewideSaleCountdownInterval = null;
 let _accountDetails = {
-  bankName: 'Fidelity',
-  accountName: 'Fic baby villa',
-  accountNumber: '5601428601',
+  bankName: 'Opay',
+  accountName: 'Fic Import',
+  accountNumber: '9061440811',
   phone: '+2349061440811',
   note: 'Please transfer exact amount and include your order ID as reference.'
 };
@@ -4413,7 +4433,7 @@ function applyAccountDetailsToDOM() {
   // FAQ answer
   const faqBank = document.getElementById('faq-bank-details');
   if (faqBank) {
-    faqBank.textContent = `We accept Bank Transfer (${a.bankName}). Bank details: ${a.bankName} | ${a.accountName} | Account Number: ${a.accountNumber}. Please use your Order ID as the transfer reference.`;
+    faqBank.textContent = `We accept Bank Transfer (${a.bankName}) and Pay on Delivery. Bank details: ${a.bankName} | ${a.accountName} | Account Number: ${a.accountNumber}. Please use your Order ID as the transfer reference.`;
   }
 }
 
@@ -5970,7 +5990,11 @@ function renderPreorderDetailBody(p) {
 
     <div id="po-total-summary" style="background:rgba(165,44,113,.06);border-radius:10px;padding:12px;margin:10px 0"></div>
 
-    <button class="btn-primary" onclick="submitPreorderOrder()"><i class="fas fa-calendar-check"></i> Place Preorder</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-secondary" style="flex:1" onclick="addPreorderToCart()"><i class="fas fa-shopping-basket"></i> Add to Cart</button>
+      <button class="btn-primary" style="flex:1" onclick="submitPreorderOrder()"><i class="fas fa-calendar-check"></i> Buy Now</button>
+    </div>
+    <div style="text-align:center;font-size:11px;color:var(--gray-400);margin-top:8px">Adding multiple preorder items to cart? Use <strong>Add to Cart</strong> for each, then checkout them together from the basket icon above.</div>
   `;
   updatePreorderTotalSummary(p);
   renderPreorderPaymentExtras();
@@ -6064,18 +6088,21 @@ window.submitPreorderOrder = async function() {
     try {
       await debitWallet(currentUser.uid, payNow, 'purchase', 'Preorder payment: '+(p.name||''), _poDraft.id);
       await loadWalletBalance();
-      await createPreorderOrder(p, payNow, grand, 'wallet', null);
+      const ok = await createPreorderOrder(p, payNow, grand, 'wallet', null);
+      if (ok) { closeModal('modal-preorder-detail'); showToast('Preorder placed successfully! 🎉'); navigate('mypreorders'); }
     } catch(e) { showToast(friendlyError(e),'error'); }
     return;
   }
 
   // Bank transfer — manual confirmation required
-  await createPreorderOrder(p, payNow, grand, 'bank', null);
+  const ok = await createPreorderOrder(p, payNow, grand, 'bank', null);
+  if (ok) { closeModal('modal-preorder-detail'); showToast('Preorder placed successfully! 🎉'); navigate('mypreorders'); }
 };
 
-async function createPreorderOrder(p, payNow, grand, method) {
+async function createPreorderOrder(p, payNow, grand, method, draftOverride) {
+  const draft = draftOverride || _poDraft;
   try {
-    const orderId = 'PRE-'+Date.now();
+    const orderId = 'PRE-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
     const initialStatus = (method === 'wallet') ? 'payment_received' : 'pending';
     let buyerPhone = '';
     try {
@@ -6087,9 +6114,9 @@ async function createPreorderOrder(p, payNow, grand, method) {
       buyerName: currentUser.displayName || currentUser.email.split('@')[0],
       buyerPhone,
       preorderProductId: p.id, productName: p.name||'', productImage: (p.images&&p.images[0])||'',
-      quantity: _poDraft.qty, unitPrice: p.price||0, shippingCost: p.shippingCost||0,
-      totalAmount: grand, paymentType: _poDraft.paymentType, amountPaid: payNow, amountDue: Math.max(0, grand-payNow),
-      paymentMethod: method, paymentProof: _poDraft.proof || null,
+      quantity: draft.qty, unitPrice: p.price||0, shippingCost: p.shippingCost||0,
+      totalAmount: grand, paymentType: draft.paymentType, amountPaid: payNow, amountDue: Math.max(0, grand-payNow),
+      paymentMethod: method, paymentProof: draft.proof || null,
       status: initialStatus, cancellable: true,
       statusHistory: [{ status: initialStatus, at: Date.now(), note: 'Preorder placed' }],
       createdAt: serverTimestamp(), updatedAt: serverTimestamp()
@@ -6097,20 +6124,204 @@ async function createPreorderOrder(p, payNow, grand, method) {
     await addDoc(collection(db,'preorder_orders'), orderData);
     // Reserve the slot
     try {
-      await updateDoc(doc(db,'preorder_products',p.id), { quantityClaimed: (p.quantityClaimed||0) + _poDraft.qty });
+      await updateDoc(doc(db,'preorder_products',p.id), { quantityClaimed: (p.quantityClaimed||0) + draft.qty });
     } catch(e) { console.warn('Could not update quantityClaimed', e); }
 
-    notifyAdminWhatsAppPreorder(orderId, orderData.buyerName, currentUser.email, p.name, _poDraft.qty, grand, payNow, method);
+    notifyAdminWhatsAppPreorder(orderId, orderData.buyerName, currentUser.email, p.name, draft.qty, grand, payNow, method);
     if (orderData.buyerPhone) notifyBuyerWhatsAppPreorder(orderData.buyerPhone, orderId, initialStatus, p.name, orderData.buyerName, grand);
-
-    closeModal('modal-preorder-detail');
-    showToast('Preorder placed successfully! 🎉');
-    navigate('mypreorders');
+    return true;
   } catch(e) {
     console.error('createPreorderOrder error:', e);
-    showToast('Failed to place preorder: '+friendlyError(e),'error');
+    showToast('Failed to place preorder for '+(p.name||'an item')+': '+friendlyError(e),'error');
+    return false;
   }
 }
+
+// ---------- PREORDER CART (multi-item checkout) ----------
+let preorderCart = [];
+let _poCartCheckout = { paymentMethod:'bank', proof:null };
+
+window.addPreorderToCart = function() {
+  if (!currentUser) { closeModal('modal-preorder-detail'); navigate('login'); return; }
+  const p = _preorderProducts.find(x=>x.id===_poDraft.id);
+  if (!p) return;
+  const existing = preorderCart.find(i=>i.id===p.id);
+  if (existing) {
+    existing.qty += _poDraft.qty;
+    existing.paymentType = _poDraft.paymentType;
+  } else {
+    preorderCart.push({
+      id: p.id, name: p.name||'', image: (p.images&&p.images[0])||'',
+      price: p.price||0, shippingCost: p.shippingCost||0, depositPercent: p.depositPercent||0,
+      qty: _poDraft.qty, paymentType: _poDraft.paymentType
+    });
+  }
+  updatePreorderCartBadge();
+  closeModal('modal-preorder-detail');
+  showToast(`Added ${p.name||'item'} to preorder cart 🛒`);
+};
+
+function updatePreorderCartBadge() {
+  const badge = document.getElementById('preorder-cart-badge');
+  if (!badge) return;
+  const count = preorderCart.reduce((s,i)=>s+i.qty,0);
+  badge.textContent = count;
+  badge.style.display = count > 0 ? 'flex' : 'none';
+}
+
+function preorderCartItemFigures(item) {
+  // Prefer the live product record (price/shipping/deposit may have changed),
+  // fall back to what was captured when the item was added to cart.
+  const live = _preorderProducts.find(x=>x.id===item.id);
+  const price = live ? (live.price||0) : item.price;
+  const shippingCost = live ? (live.shippingCost||0) : item.shippingCost;
+  const depositPercent = live ? (live.depositPercent||0) : item.depositPercent;
+  const itemTotal = price * item.qty;
+  const grand = itemTotal + shippingCost;
+  const payNow = item.paymentType === 'deposit' ? Math.round(grand * (depositPercent/100)) : grand;
+  return { price, shippingCost, depositPercent, itemTotal, grand, payNow };
+}
+
+function preorderCartTotals() {
+  return preorderCart.reduce((acc, item) => {
+    const f = preorderCartItemFigures(item);
+    acc.grand += f.grand;
+    acc.payNow += f.payNow;
+    return acc;
+  }, { grand: 0, payNow: 0 });
+}
+
+window.openPreorderCartModal = function() {
+  if (!preorderCart.length) { showToast('Your preorder cart is empty. Add items first.'); return; }
+  renderPreorderCartBody();
+  openModal('modal-preorder-cart');
+};
+
+window.changePreorderCartQty = function(id, delta) {
+  const item = preorderCart.find(i=>i.id===id);
+  if (!item) return;
+  const live = _preorderProducts.find(x=>x.id===id);
+  const remaining = (live && live.quantityLimit != null) ? Math.max(1, live.quantityLimit - (live.quantityClaimed||0)) : Infinity;
+  item.qty = Math.max(1, Math.min(item.qty + delta, remaining));
+  renderPreorderCartBody();
+  updatePreorderCartBadge();
+};
+
+window.removePreorderCartItem = function(id) {
+  preorderCart = preorderCart.filter(i=>i.id!==id);
+  updatePreorderCartBadge();
+  if (!preorderCart.length) { closeModal('modal-preorder-cart'); showToast('Preorder cart is empty'); return; }
+  renderPreorderCartBody();
+};
+
+window.setPreorderCartPaymentMethod = function(val) {
+  _poCartCheckout.paymentMethod = val;
+  renderPreorderCartBody();
+};
+
+window.handlePreorderCartProofUpload = async function(file) {
+  if (!file) return;
+  try {
+    const dataUrl = await compressImageFile(file, 900, 0.7);
+    _poCartCheckout.proof = dataUrl;
+    const preview = document.getElementById('po-cart-proof-preview');
+    if (preview) preview.innerHTML = `<img src="${dataUrl}" style="max-width:120px;border-radius:8px;border:2px solid var(--orange)">`;
+  } catch(e) { showToast('Could not read that image','error'); }
+};
+
+function renderPreorderCartBody() {
+  const body = document.getElementById('preorder-cart-body');
+  if (!body) return;
+  const totals = preorderCartTotals();
+  body.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+      ${preorderCart.map(item => {
+        const f = preorderCartItemFigures(item);
+        return `
+        <div style="display:flex;gap:10px;border:1px solid var(--gray-100);border-radius:10px;padding:10px">
+          <img src="${item.image||'https://placehold.co/64x64/f3f4f6/9ca3af?text=Preorder'}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.src='https://placehold.co/64x64/f3f4f6/9ca3af?text=Img'">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:800;font-size:13px;margin-bottom:2px">${escHtml(item.name)}</div>
+            <div style="font-size:12px;color:var(--gray-500);margin-bottom:6px">${item.paymentType==='deposit'?'Deposit':'Full payment'} · ₦${f.payNow.toLocaleString()}</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <button onclick="changePreorderCartQty('${item.id}',-1)" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--gray-200);background:#fff;font-weight:900;cursor:pointer">−</button>
+              <span style="font-weight:800;font-size:13px;min-width:16px;text-align:center">${item.qty}</span>
+              <button onclick="changePreorderCartQty('${item.id}',1)" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--gray-200);background:#fff;font-weight:900;cursor:pointer">+</button>
+              <button onclick="removePreorderCartItem('${item.id}')" style="margin-left:auto;background:none;border:none;color:#ef4444;font-size:13px;cursor:pointer"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Payment Method</label>
+      <select class="form-input" id="po-cart-payment-method" onchange="setPreorderCartPaymentMethod(this.value)">
+        <option value="bank" ${_poCartCheckout.paymentMethod==='bank'?'selected':''}>🏦 Bank Transfer</option>
+        <option value="wallet" ${_poCartCheckout.paymentMethod==='wallet'?'selected':''}>💰 Wallet Balance</option>
+      </select>
+    </div>
+    ${_poCartCheckout.paymentMethod==='bank' ? `
+      <div style="background:var(--gray-50);border-radius:8px;padding:10px;font-size:12px;margin-top:6px">
+        <p><strong>Bank:</strong> ${escHtml(_accountDetails.bankName||'')}</p>
+        <p><strong>Account Name:</strong> ${escHtml(_accountDetails.accountName||'')}</p>
+        <p><strong>Account Number:</strong> ${escHtml(_accountDetails.accountNumber||'')}</p>
+        <p style="margin-top:6px;color:var(--orange);font-weight:700">Send one transfer covering the total below, then upload proof</p>
+      </div>
+      <input type="file" accept="image/*" id="po-cart-proof-file" style="margin-top:8px" onchange="handlePreorderCartProofUpload(this.files[0])">
+      <div id="po-cart-proof-preview" style="margin-top:8px">${_poCartCheckout.proof?`<img src="${_poCartCheckout.proof}" style="max-width:120px;border-radius:8px;border:2px solid var(--orange)">`:''}</div>
+    ` : `<div style="font-size:12px;color:var(--gray-500);margin-top:6px">Wallet Balance: <strong>₦${(_walletBalance||0).toLocaleString()}</strong></div>`}
+
+    <div style="background:rgba(165,44,113,.06);border-radius:10px;padding:12px;margin:14px 0">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Items (${preorderCart.reduce((s,i)=>s+i.qty,0)})</span><span>₦${totals.grand.toLocaleString()}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:900;color:var(--orange)"><span>Pay Now (Total)</span><span>₦${totals.payNow.toLocaleString()}</span></div>
+    </div>
+
+    <button class="btn-primary" onclick="submitPreorderCartCheckout()"><i class="fas fa-calendar-check"></i> Checkout All (${preorderCart.length} item${preorderCart.length>1?'s':''})</button>
+  `;
+}
+
+window.submitPreorderCartCheckout = async function() {
+  if (!currentUser) { closeModal('modal-preorder-cart'); navigate('login'); return; }
+  if (!preorderCart.length) return;
+  if (_poCartCheckout.paymentMethod === 'bank' && !_poCartCheckout.proof) return showToast('Please upload proof of payment','error');
+
+  const totals = preorderCartTotals();
+  if (_poCartCheckout.paymentMethod === 'wallet' && _walletBalance < totals.payNow) {
+    return showToast('Insufficient wallet balance. Choose another payment method.','error');
+  }
+
+  if (_poCartCheckout.paymentMethod === 'wallet') {
+    try {
+      await debitWallet(currentUser.uid, totals.payNow, 'purchase', `Preorder cart payment (${preorderCart.length} items)`, 'preorder-cart');
+      await loadWalletBalance();
+    } catch(e) { return showToast(friendlyError(e),'error'); }
+  }
+
+  let successCount = 0;
+  for (const item of preorderCart) {
+    const p = _preorderProducts.find(x=>x.id===item.id) || { id:item.id, name:item.name, images:[item.image], price:item.price, shippingCost:item.shippingCost, depositPercent:item.depositPercent };
+    const f = preorderCartItemFigures(item);
+    const itemDraft = { qty: item.qty, paymentType: item.paymentType, proof: _poCartCheckout.proof };
+    const ok = await createPreorderOrder(p, f.payNow, f.grand, _poCartCheckout.paymentMethod, itemDraft);
+    if (ok) successCount++;
+  }
+
+  if (successCount === preorderCart.length) {
+    showToast(`${successCount} preorder${successCount>1?'s':''} placed successfully! 🎉`);
+  } else if (successCount > 0) {
+    showToast(`${successCount} of ${preorderCart.length} preorders placed. Check My Preorders and try the rest again.`,'error');
+  } else {
+    showToast('Could not place your preorders. Please try again.','error');
+  }
+
+  // Only clear the items that actually succeeded is complex to track item-by-item here,
+  // so on full success we clear everything; on partial failure we keep the cart so
+  // nothing already-paid-for silently disappears from view before the user notices.
+  if (successCount === preorderCart.length) { preorderCart = []; updatePreorderCartBadge(); }
+  closeModal('modal-preorder-cart');
+  navigate('mypreorders');
+};
 
 // ---------- CUSTOMER: My Preorders ----------
 function loadMyPreorders() {
@@ -7256,7 +7467,7 @@ function buildProductContext() {
 function getSystemContext() {
   return `You are Fic Store Support Bot — friendly AI assistant for FIC IMPORT, a Nigerian online retail store.
 Store: Nigeria | WhatsApp: +234 906 144 0811 | Email: adewalekemi27@gmail.com | Hours: Mon–Sat 8AM–8PM WAT
-Payment: Bank Transfer Fidelity - Fic baby villa | 5601428601
+Payment: 1) Bank Transfer Opay - Fic Import | 9061440811 2) Pay on Delivery
 Delivery: Free above ₦150,000. ₦3,500 below. Lagos: 1-2 days. Abuja/PH: 2-3 days. Others: 3-5 days.
 Categories: Kids, Ladies, Men, Household, Gadgets and Electronics, Beauty and Cosmetics
 Current Products:\n${buildProductContext()}
@@ -7276,7 +7487,7 @@ function smartLocalReply(text) {
   }
   if (/price|cost|how much|fee/.test(t)) return "Prices are in ₦ on each product. Delivery: ₦3,500 (FREE above ₦150,000). Ask me any product name for its price!";
   if (/deliver|shipping|how long|when|days/.test(t)) return "🚚 Delivery:\n• Lagos: 1–2 days\n• Abuja/PH: 2–3 days\n• Others: 3–5 days\nFree delivery on orders ₦150,000+";
-  if (/pay|payment|transfer|bank|opay/.test(t)) return `💳 Payment option:\nBank Transfer (${_accountDetails.bankName}): ${_accountDetails.accountName} | ${_accountDetails.accountNumber}\nChoose at checkout!`;
+  if (/pay|payment|transfer|bank|opay/.test(t)) return `💳 Payment options:\n1. Bank Transfer (${_accountDetails.bankName}): ${_accountDetails.accountName} | ${_accountDetails.accountNumber}\n2. Pay on Delivery\nChoose at checkout!`;
   if (/track|where is|my order|status/.test(t)) return "📦 Track order: Menu → Track Order → enter Order ID or phone. You also get WhatsApp updates automatically!";
   if (/return|refund|exchange|wrong|damaged/.test(t)) return "😟 For returns/refunds, contact us within 24hrs of delivery via WhatsApp: +234 906 144 0811";
   if (/contact|whatsapp|call|reach/.test(t)) return "📞 Contact: WhatsApp +234 906 144 0811 | Email: adewalekemi27@gmail.com\nMon–Sat 8AM–8PM";
