@@ -4671,30 +4671,91 @@ function renderAdminSaleForm() {
 }
 
 const PRODUCTS_CACHE_KEY = 'ficstore-products-cache';
-let _productsUnsub = null;
+const PRODUCTS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes — repeat visits within this window cost 0 Firestore reads
+let _productsSnapshotReceived = false; // true only once Firestore has actually responded (even with 0 docs)
+let _waitingForProducts = false;
+let _productsLoading = false;
 
-async function loadProducts() {
-  // Show last-known products instantly from cache (no waiting) while the live connection sets up.
-  if (!allProducts.length) {
+async function loadProducts(forceRefresh) {
+  // Serve from cache first — if it's still fresh, skip Firestore entirely.
+  // This is the main lever for free-tier read usage: without it, every single
+  // page load re-reads the whole products collection, even for a visitor who
+  // was just here two minutes ago and nothing has changed.
+  if (!forceRefresh) {
     try {
       const cached = JSON.parse(localStorage.getItem(PRODUCTS_CACHE_KEY) || 'null');
-      if (cached && Array.isArray(cached) && cached.length) {
-        allProducts = cached;
+      if (cached && Array.isArray(cached.data) && cached.data.length) {
+        allProducts = cached.data;
         renderHome();
+        const age = Date.now() - (cached.ts || 0);
+        if (age < PRODUCTS_CACHE_TTL_MS) {
+          _productsSnapshotReceived = true;
+          return; // cache is fresh enough — no network call at all
+        }
       }
     } catch(e) { /* ignore bad cache */ }
   }
-  // Already listening — no need to set up again (avoids stacking duplicate listeners).
-  if (_productsUnsub) return;
+  if (_productsLoading) return; // avoid firing overlapping fetches
+  _productsLoading = true;
   try {
-    _productsUnsub = onSnapshot(collection(db,'products'), (snap) => {
-      allProducts = snap.docs.map(d => ({id:d.id,...d.data()}));
-      renderHome();
-      // Keep the admin products table in sync live too (e.g. stock dropping right after a sale)
-      if (_navStack[_navStack.length-1] === 'admin') { try { loadAdminProducts(); } catch(e) {} }
-      try { localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify(allProducts)); } catch(e) { /* storage full/unavailable — safe to skip */ }
-    }, (e) => console.error('products listener error:', e));
-  } catch(e) { console.error(e); }
+    // A one-time read, not a live listener: a listener re-bills reads for the
+    // whole session and stays open for as long as the tab is, which adds up
+    // fast across many visitors. A plain fetch reads once and stops.
+    const snap = await getDocs(collection(db,'products'));
+    _productsSnapshotReceived = true;
+    allProducts = snap.docs.map(d => ({id:d.id,...d.data()}));
+    renderHome();
+    if (_navStack[_navStack.length-1] === 'admin') { try { loadAdminProducts(); } catch(e) {} }
+    try { localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({ data: allProducts, ts: Date.now() })); } catch(e) { /* storage full/unavailable — safe to skip */ }
+  } catch(e) {
+    console.error('products fetch error:', e);
+  } finally {
+    _productsLoading = false;
+  }
+}
+
+window.retryLoadProducts = function() {
+  _waitingForProducts = false;
+  ['flash-grid','featured-grid','trending-grid'].forEach(id=>renderSkeletons(id, id==='flash-grid'?4:8));
+  loadProducts(true); // manual retry always bypasses cache
+  waitForProductsOrShowEmpty();
+};
+
+function waitForProductsOrShowEmpty() {
+  if (_waitingForProducts) return; // avoid stacking multiple concurrent poll loops
+  _waitingForProducts = true;
+  // Poor connections can take far longer than a couple seconds to deliver the
+  // first Firestore snapshot. Keep checking for a good while, and only ever
+  // claim "no products" once Firestore has genuinely confirmed an empty
+  // catalog — never purely because we got impatient waiting on a slow network.
+  let waited = 0;
+  const step = 2000;
+  const maxWait = 25000; // ~25s total before offering a manual retry
+  const check = () => {
+    if (allProducts.length) { _waitingForProducts = false; return; } // data arrived — renderHome() already handled it
+    waited += step;
+    if (_productsSnapshotReceived) {
+      // Firestore genuinely responded with zero products — this is real.
+      _waitingForProducts = false;
+      ['flash-grid','featured-grid','trending-grid'].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el) el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:30px 20px;color:var(--gray-400)"><i class="fas fa-box-open" style="font-size:40px;display:block;margin-bottom:10px"></i><p style="font-size:14px;font-weight:600">No products yet &mdash; check back soon!</p></div>`;
+      });
+      return;
+    }
+    if (waited >= maxWait) {
+      // Still nothing after a generous wait — likely a genuinely weak connection.
+      // Say so honestly and offer a retry, instead of implying the store is empty.
+      _waitingForProducts = false;
+      ['flash-grid','featured-grid','trending-grid'].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el) el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:30px 20px;color:var(--gray-400)"><i class="fas fa-wifi" style="font-size:36px;display:block;margin-bottom:10px"></i><p style="font-size:14px;font-weight:600">Taking longer than usual to load</p><p style="font-size:12px;margin:4px 0 12px">This can happen on a slow connection</p><button class="btn-primary" style="max-width:160px;margin:0 auto" onclick="retryLoadProducts()">Retry</button></div>`;
+      });
+      return;
+    }
+    setTimeout(check, step);
+  };
+  setTimeout(check, step);
 }
 
 function renderHome() {
@@ -4702,14 +4763,7 @@ function renderHome() {
     renderSkeletons('flash-grid',4);
     renderSkeletons('featured-grid',4);
     renderSkeletons('trending-grid',4);
-    setTimeout(()=>{
-      // Re-check: if real product data has arrived in the meantime, don't clobber it.
-      if (allProducts.length) return;
-      ['flash-grid','featured-grid','trending-grid'].forEach(id=>{
-        const el = document.getElementById(id);
-        if(el) el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:30px 20px;color:var(--gray-400)"><i class="fas fa-box-open" style="font-size:40px;display:block;margin-bottom:10px"></i><p style="font-size:14px;font-weight:600">No products yet &mdash; check back soon!</p></div>`;
-      });
-    },1500);
+    waitForProductsOrShowEmpty();
     return;
   }
   const flashProducts = allProducts.filter(p=>p.isFlash);
@@ -6914,7 +6968,7 @@ window.saveProduct = async function() {
       showToast('Product added!');
     }
     closeModal('modal-product');
-    await loadProducts();
+    await loadProducts(true);
     loadAdminProducts();
   } catch(e) {
     console.error('saveProduct error:', e);
@@ -6932,7 +6986,7 @@ window.saveProduct = async function() {
 window.deleteProduct = async function(id) {
   if(!isAdmin||!confirm('Delete this product?')) return;
   await deleteDoc(doc(db,'products',id));
-  await loadProducts();
+  await loadProducts(true);
   loadAdminProducts();
   showToast('Product deleted');
 };
